@@ -1,61 +1,60 @@
 import 'package:flutter/material.dart';
 import '../../components/editor.dart';
 import '../../models/transferencia.dart';
-import '../../database/app_database.dart';
 
-
-class FormularioTransferencia extends StatefulWidget {
+class FormularioCompraRoupa extends StatefulWidget {
   @override
-  State<StatefulWidget> createState() {
-    return FormularioTransferenciaState();
+  State<FormularioCompraRoupa> createState() {
+    return FormularioCompraRoupaState();
   }
 }
 
-class FormularioTransferenciaState extends State<FormularioTransferencia> {
-  final TextEditingController _controladorCampoNumeroConta =
+class FormularioCompraRoupaState extends State<FormularioCompraRoupa> {
+  final TextEditingController _controladorCampoNumeroVenda =
       TextEditingController();
-  final TextEditingController _controladorCampoValor = TextEditingController();
 
-  static const _tituloAppBar = 'Criando transferência';
-  static const _rotuloCampoValor = 'Valor';
-  static const _dicaCampoValor = '0,00';
+  final TextEditingController _controladorCampoValorCompra =
+      TextEditingController();
 
-  static const _rotuloCampoNumeroConta = 'Número da conta';
-  static const _dicaCampoNumeroConta = '0000';
-  static const _textoBotaoConfirmar = 'Confirmar';
+  static const _tituloAppBar = 'Nova compra de roupa';
+
+  static const _rotuloCampoNumeroVenda = 'Número da venda';
+  static const _dicaCampoNumeroVenda = '0000';
+
+  static const _rotuloCampoValorCompra = 'Valor da compra';
+  static const _dicaCampoValorCompra = '0,00';
+
+  static const _textoBotaoConfirmar = 'Confirmar compra';
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          _tituloAppBar,        
-        ),
-        
+        title: const Text(_tituloAppBar),
       ),
       body: SingleChildScrollView(
         child: Column(
           children: <Widget>[
             Editor(
-              controlador: _controladorCampoNumeroConta,
-              rotulo: _rotuloCampoNumeroConta,
-              dica: _dicaCampoNumeroConta,
+              controlador: _controladorCampoNumeroVenda,
+              rotulo: _rotuloCampoNumeroVenda,
+              dica: _dicaCampoNumeroVenda,
+              icone: Icons.confirmation_number,
             ),
 
             Editor(
-              controlador: _controladorCampoValor,
-              rotulo: _rotuloCampoValor,
-              dica: _dicaCampoValor,
-              icone: Icons.monetization_on,
+              controlador: _controladorCampoValorCompra,
+              rotulo: _rotuloCampoValorCompra,
+              dica: _dicaCampoValorCompra,
+              icone: Icons.attach_money,
             ),
 
             ElevatedButton(
               onPressed: () {
-                debugPrint("Clicou aqui...");
-                _criaTransferencia(
+                _criaCompraRoupa(
                   context,
-                  _controladorCampoNumeroConta,
-                  _controladorCampoValor,
+                  _controladorCampoNumeroVenda,
+                  _controladorCampoValorCompra,
                 );
               },
               child: const Text(_textoBotaoConfirmar),
@@ -67,29 +66,24 @@ class FormularioTransferenciaState extends State<FormularioTransferencia> {
   }
 }
 
-void _criaTransferencia(
+void _criaCompraRoupa(
   BuildContext context,
-  TextEditingController controladorCampoNumeroConta,
-  TextEditingController controladorCampoValor,
+  TextEditingController controladorCampoNumeroVenda,
+  TextEditingController controladorCampoValorCompra,
 ) {
-  final int? numeroConta = int.tryParse(controladorCampoNumeroConta.text);
-  final double? valor = double.tryParse(controladorCampoValor.text);
+  final int? numeroVenda =
+      int.tryParse(controladorCampoNumeroVenda.text);
 
-  if (numeroConta != null && valor != null) {
-    final transferenciaCriada = Transferencia(valor, numeroConta);
+  final String valorTexto =
+      controladorCampoValorCompra.text.replaceAll(',', '.');
 
-    debugPrint('$transferenciaCriada'); // Teste de saída no console
+  final double? valorCompra = double.tryParse(valorTexto);
 
-    salvarTransferencia(transferenciaCriada).then((id){
-      debugPrint('Transferência salva com id: $id');
+  if (numeroVenda != null && valorCompra != null) {
+    final compraCriada = CompraRoupa(valorCompra, numeroVenda);
 
-      if (!context.mounted) return;
+    debugPrint('$compraCriada');
 
-      Navigator.pop(context, transferenciaCriada);
-
-    });
-
-
-    
+    Navigator.pop(context, compraCriada);
   }
 }

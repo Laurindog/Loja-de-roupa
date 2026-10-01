@@ -2,24 +2,28 @@ import 'package:flutter/material.dart';
 import '../../models/transferencia.dart';
 import 'formulario.dart';
 import 'package:intl/intl.dart';
-import '../../database/app_database.dart';
 
-class ListaTransferencias extends StatefulWidget {
-  final List<Transferencia> _transferencias = [];
+class ListaComprasRoupa extends StatefulWidget {
+  final List<CompraRoupa> _compras = [
+    CompraRoupa(89.90, 101),
+    CompraRoupa(149.90, 102),
+  ];
 
   @override
-  State<StatefulWidget> createState() {
-    return ListaTransferenciaState();
+  State<ListaComprasRoupa> createState() {
+    return ListaComprasRoupaState();
   }
 }
 
-class ListaTransferenciaState extends State<ListaTransferencias> {
-  static const _tituloAppBar = "Transferências";
+class ListaComprasRoupaState extends State<ListaComprasRoupa> {
+  static const _tituloAppBar = 'Loja de Roupas';
 
-  void _atualiza(Transferencia? transferenciaRecebida) {
-    if (transferenciaRecebida != null) {
-      setState(() {
-        widget._transferencias.add(transferenciaRecebida);
+  void _atualiza(CompraRoupa? compraRecebida) {
+    if (compraRecebida != null) {
+      Future.delayed(const Duration(seconds: 1), () {
+        setState(() {
+          widget._compras.add(compraRecebida);
+        });
       });
     }
   }
@@ -27,74 +31,60 @@ class ListaTransferenciaState extends State<ListaTransferencias> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(_tituloAppBar)),
-      body: FutureBuilder<List<Transferencia>>(
-        future: buscarTransferencias(),
-        builder: (context, snapshot) {
-          // Verifica se o Future ainda está em execução
-          // ConnectionState.waiting indica que a operação assíncrona não terminou
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            // Mostra um indicador de progresso centralizado enquanto os dados carregam
-            return Center(child: CircularProgressIndicator());
-          }
+      appBar: AppBar(
+        title: const Text(_tituloAppBar),
+      ),
 
-          // Verifica se ocorreu algum erro durante a execução do Future
-          if (snapshot.hasError) {
-            // Mostra uma mensagem de erro centralizada
-            return Center(child: Text('Erro ao carregar transferências'));
-          }
+      body: ListView.builder(
+        itemCount: widget._compras.length,
+        itemBuilder: (context, indice) {
+          final compra = widget._compras[indice];
 
-          // Verifica se não há dados ou se a lista retornada está vazia
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            // Mostra uma mensagem indicando que não há transferências
-            return Center(child: Text('Nenhuma transferência encontrada'));
-          }
-
-          final transferencias = snapshot.data!;
-
-          return ListView.builder(
-            itemCount: transferencias.length,
-            itemBuilder: (context, indice) {
-              final transferencia = transferencias[indice];
-               return ItemTransferencia(transferencia);
-            }
-
-          );
+          return ItemCompraRoupa(compra);
         },
       ),
 
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          debugPrint("Botão + pressionado");
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) {
-                return FormularioTransferencia();
+                return FormularioCompraRoupa();
               },
             ),
-          ).then((transferenciaRecebida) => _atualiza(transferenciaRecebida));
+          ).then(
+            (compraRecebida) => _atualiza(compraRecebida),
+          );
         },
-        child: Icon(Icons.add),
+        child: const Icon(Icons.checkroom),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+
+      floatingActionButtonLocation:
+          FloatingActionButtonLocation.centerFloat,
     );
   }
 }
 
-class ItemTransferencia extends StatelessWidget {
-  final Transferencia _transferencia;
+class ItemCompraRoupa extends StatelessWidget {
+  final CompraRoupa _compra;
 
-  ItemTransferencia(this._transferencia);
+  ItemCompraRoupa(this._compra);
 
   @override
   Widget build(BuildContext context) {
-    NumberFormat formato = NumberFormat.simpleCurrency();
+    final NumberFormat formato =
+        NumberFormat.simpleCurrency(locale: 'pt_BR');
+
     return Card(
       child: ListTile(
-        leading: Icon(Icons.monetization_on),
-        title: Text(formato.format(_transferencia.valor).toString()),
-        subtitle: Text(_transferencia.numeroConta.toString()),
+        leading: const Icon(Icons.checkroom),
+        title: Text(
+          'Venda #${_compra.numeroVenda}',
+        ),
+        subtitle: Text(
+          'Valor da compra: ${formato.format(_compra.valorCompra)}',
+        ),
       ),
     );
   }
