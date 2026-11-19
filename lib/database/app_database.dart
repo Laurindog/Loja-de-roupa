@@ -1,78 +1,73 @@
-// pacote "path" fornece utilitários para manipular caminhos de arquivos de forma cross-platform (join, dirname, etc).
-import 'package:path/path.dart';
 
-// pacote sqflite: API para trabalhar com SQLite em Flutter/Dart.
+import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../models/transferencia.dart';
 
-import 'dart:io';
-
 Future<Database> getDatabase() async {
-  final String path = join(await getDatabasesPath(), 'bank.db');
+  final String path = join(
+    await getDatabasesPath(),
+    'loja_roupas.db',
+  );
+
   return openDatabase(
     path,
-    onCreate: (db, version) async {
-      await db.execute(
-        'CREATE TABLE transferencias('
-        'id INTEGER PRIMARY KEY AUTOINCREMENT, '
-        'valor REAL, '
-        'numero_conta INTEGER)',
-      );
-    },
     version: 1,
+    onCreate: (db, version) async {
+      await db.execute('''
+        CREATE TABLE compras (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          numero_venda INTEGER NOT NULL UNIQUE,
+          valor_compra REAL NOT NULL,
+          sincronizado INTEGER NOT NULL DEFAULT 1
+        )
+      ''');
+    },
   );
 }
 
-// Função assíncrona que salva uma transferência no banco de dados.
-// Retorna um Future<int> com o id da linha inserida.
-Future<int> salvarTransferencia(Transferencia transferencia) async {
-  final Database db = await getDatabase();
-  final Map<String, dynamic> transferenciaMap = {
-    // Atribui o valor da transferência à coluna 'valor'.
-    'valor': transferencia.valor,
-    // Atribui o número da conta à coluna 'numero_conta'.
-    'numero_conta': transferencia.numeroConta,
-  };
-  return db.insert('transferencias', transferenciaMap);
-}
-
-Future<List<Transferencia>> buscarTransferencias() async {
+// Salva uma compra no SQLite.
+Future<int> salvarCompraLocal(CompraRoupa compra) async {
   final Database db = await getDatabase();
 
-  final List<Map<String, dynamic>> result = await db.query('transferencias');
-
-  return List.generate(result.length, (i) {
-    return Transferencia(result[i]['valor'], result[i]['numero_conta']);
-  });
+  return db.insert(
+    'compras',
+    compra.toMap()..remove('id'),
+    conflictAlgorithm: ConflictAlgorithm.replace,
+  );
 }
 
-Future<void> testeBanco() async {
-  final String path = join(await getDatabasesPath(), 'bank.db');
-  final File arquivoBanco = File(path);
+// Busca todas as compras armazenadas localmente.
+Future<List<CompraRoupa>> buscarComprasLocais() async {
+  final Database db = await getDatabase();
 
-  //await deleteDatabase(path);
+  final List<Map<String, dynamic>> resultado =
+      await db.query('compras', orderBy: 'id DESC');
 
-  final bool existe = await arquivoBanco.exists();
+  return resultado.map((map) => CompraRoupa.fromMap(map)).toList();
+}
 
-  if (existe) {
-    print('****Banco de dados encontrado: $path');
-    final Database db = await openDatabase(path);
+// Busca somente as compras que ainda não foram sincronizadas.
+Future<List<CompraRoupa>> buscarComprasPendentes() async {
+  final Database db = await getDatabase();
 
-    final List<Map<String, dynamic>> tabelas = await db.rawQuery(
-      "select name from sqlite_master where type = 'table';",
-    );
+  final List<Map<String, dynamic>> resultado = await db.query(
+    'compras',
+    where: 'sincronizado = ?',
+    whereArgs: [0],
+  );
 
-    if (tabelas.isNotEmpty) {
-      print('****Tabelas encontradas:');
-      for (var tabela in tabelas) {
-        print('- ${tabela['name']}');
-      }
-    } else {
-      print('****Nenhuma tabela encontrada no banco.');
-    }
-    await db.close();
-  } else {
-    print('XXXX - O arquivo do banco de dados não foi encontrado em: $path');
-  }
+  return resultado.map((map) => CompraRoupa.fromMap(map)).toList();
+}
+
+// Marca uma compra como sincronizada.
+Future<void> marcarCompraSincronizada(int id) async {
+  final Database db = await getDatabase();
+
+  await db.update(
+    'compras',
+    {'sincronizado': 1},
+    where: 'id = ?',
+    whereArgs: [id],
+  );
 }
